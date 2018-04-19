@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Bean Python</title>
+	<link rel="stylesheet" type="text/css" href="static/bootstrap/css/bootstrap.min.css">
+	<script type="text/javascript" src="static/js/jquery.min.js"></script>
+	<style>
+		body{
+			padding-top:60px;
+		}
+	</style>
+</head>
+<body>
+	<nav class="navbar navbar-inverse navbar-fixed-top">
+		<div class="container">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="#">northcoriolis.edupython.com</a>
+			</div>
+			<div id="navbar" class="collapse navbar-collapse">
+				<ul class="nav navbar-nav">
+					<li><a href="#">#</a></li>
+				</ul>
+			</div> 
+		</div>
+	</nav>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-4">
+				<h3>What i need to write here?</h3>
+				<!-- <form id="formek" method="POST" action="/genPLT"> -->
+				<form id="formek" onsubmit="return false;">
+					<div id="input_plt">
+						<label for="input1">alfa</label> <input type="text" class="form-control" id="input1" focus autocomplete="false"><br>
+						<label for="input2">v</label> <input type="text" class="form-control" id="input2" autocomplete="false"><br>
+						<!-- <label for="input2">input3 (x)</label> <input type="text" class="form-control" id="input3"><br> -->
+						<input type="hidden" class="form-control" id="input3">
+					</div>
+					<!-- <button id="sendbtn" type="submit" class="btn btn-default">Pokaż to noooo....</button> -->
+					<button id="sendbtn" type="submit" class="btn btn-default" onclick="writePlt()">3,2,1, GO!</button>
+					<button  type="submit" class="btn btn-default" onclick="resetPlt()">Reset</button>
+				</form><br>
+				<strong>Historia:</strong>
+				<div id="historyplt"></div>
+			</div>
+			<div class="col-md-8">
+				<div class="jumbotron" style="padding: 15px; margin: 0;">
+					<img id="plotek" style="width: 100%;height: auto;" />
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+		input_plt = {}
+		lastplt = "";
+		function writePlt(){
+			$("#sendbtn").attr("disabled", "disabled");
+			// var query_params = {writePlt: '1'};
+			// input_plt.forEach(function(item, index){
+			// 	query_params[item.name] = $("#input" + item.name).val();
+			// });
+			// var query = $.param(query_params);
+			// console.log(query);
+			// $.getJSON("/ajax?" + query, function(data){
+			// 	console.log(data);
+			// 	$("#plotek").attr("src", "plt.png?r=" + Math.random());
+			// 	$("#sendbtn").removeAttr("disabled");
+			// });
+			$.getJSON("/genPLT/" + $("#input1").val() + "/" + $("#input2").val() + "/" + $("#input3").val(), function(data){
+				console.log(data);
+				$("#plotek").attr("src", "plt.png?r=" + Math.random());
+				$("#sendbtn").removeAttr("disabled");
+				updateHISTORY(data);
+			});
+		}
+		function resetPlt(){
+			$("#sendbtn").attr("disabled", "disabled");
+			$.get("/resetPlt", function(data){
+				console.log(data);
+				$("#plotek").attr("src", "plt.png?r=" + Math.random());
+				$("#sendbtn").removeAttr("disabled");
+				$.getJSON("/getHISTORY", function(data){
+					updateHISTORY(data);
+				});
+			});
+		}
+
+		function getWHAT(){
+			$.getJSON("/ajax?getWHAT=1", function(data){
+				if(data.settings.what=="noplt.py"){
+					document.location = "/noplt.html";
+				}
+				if(data.settings.lastplt!=lastplt){
+					$("#plotek").attr("src", "plt.png?r=" + Math.random());
+					lastplt = data.settings.lastplt;
+				}
+				if(JSON.stringify(data.settings.input_plt) !== JSON.stringify(input_plt)){
+					input_plt_html = "";
+					data.settings.input_plt.forEach(function(item, index){
+						console.log(item);
+						input_plt_html = input_plt_html + "<label for='input" + item.name + "'>" + item.label + "</label> <input type='number' class='form-control' id='input" + item.name + "' placeholder='" + item.placeholder + "' min='" + item.min + "' max='" + item.max + "'><br>";
+					});
+					$("#input_plt").html(input_plt_html);
+					input_plt = data.settings.input_plt;
+				}
+				var historyplt_html = "";
+				data.input_data_plt.forEach(function(item, index){
+					Object.keys(item).forEach(function(item2){
+						historyplt_html = historyplt_html + "<strong>" + item2 + ":</strong> " + item[item2] + " ";
+					});
+					historyplt_html = historyplt_html + "<br>";
+				});
+				if(historyplt_html==""){
+					historyplt_html = '<p class="text-muted">Brak wpisów w historii...</p>';
+				}
+				$("#historyplt").html(historyplt_html);
+			});
+		}
+		function updateHISTORY(data){
+			var historyplt_html = "";
+			// console.log(data);
+			data.forEach(function(item, index){
+				Object.keys(item).forEach(function(item2){
+					historyplt_html = historyplt_html + "<strong>" + item2 + ":</strong> " + item[item2] + " ";
+				});
+				historyplt_html = historyplt_html + "<br>";
+			});
+			if(historyplt_html==""){
+				historyplt_html = '<p class="text-muted">Brak wpisów w historii...</p>';
+			}
+			$("#historyplt").html(historyplt_html);
+		}
+		function ajaxNOW(){
+			$("#plotek").attr("src", "plt.png?r=" + Math.random());
+			$.getJSON("/getHISTORY", function(data){
+				updateHISTORY(data);
+			});
+		}
+		ajaxNOW();
+		setInterval(ajaxNOW(), 2500);
+	</script>
+</body>
+</html>
